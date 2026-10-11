@@ -1,20 +1,24 @@
 -- ================================================
--- ABDI NEGARA SIMULATOR - FLY & AUTO TRAIN
+-- ABDI NEGARA SIMULATOR - AUTO ALL SKP & FLY
 -- ================================================
 
 local UserInputService = game:GetService("UserInputService")
-local VirtualInputManager = game:GetService("VirtualInputManager")
 local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
 local RunService = game:GetService("RunService")
+local VirtualInputManager = game:GetService("VirtualInputManager")
 
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 local Camera = workspace.CurrentCamera
 
 local flying = false
-local autoClickEnabled = false
+local autoSKPEnabled = false
 local flySpeed = 50
+
+-- Hapus GUI lama jika menumpuk
+if CoreGui:FindFirstChild("AbdiNegaraMenu") then CoreGui.AbdiNegaraMenu:Destroy() end
+if PlayerGui:FindFirstChild("AbdiNegaraMenu") then PlayerGui.AbdiNegaraMenu:Destroy() end
 
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "AbdiNegaraMenu"
@@ -39,9 +43,9 @@ Title.Parent = MainFrame
 Title.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
 Title.Size = UDim2.new(1, 0, 0, 30)
 Title.Font = Enum.Font.SourceSansBold
-Title.Text = "Abdi Negara Script"
+Title.Text = "Abdi Negara Auto SKP"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.TextSize = 16
+Title.TextSize = 15
 
 local FlyBtn = Instance.new("TextButton")
 FlyBtn.Parent = MainFrame
@@ -59,7 +63,7 @@ AutoBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
 AutoBtn.Position = UDim2.new(0.1, 0, 0.6, 0)
 AutoBtn.Size = UDim2.new(0.8, 0, 0.28, 0)
 AutoBtn.Font = Enum.Font.SourceSansBold
-AutoBtn.Text = "Auto JJS/Train: OFF"
+AutoBtn.Text = "Auto ALL SKP: OFF"
 AutoBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 AutoBtn.TextSize = 14
 
@@ -79,7 +83,7 @@ local function startFlying()
     bodyGyro.Parent = root
 
     bodyVelocity = Instance.new("BodyVelocity")
-    bodyVelocity.velocity = Vector3.new(0, 0.1, 0)
+    bodyVelocity.velocity = Vector3.new(0, 0, 0)
     bodyVelocity.maxForce = Vector3.new(9e9, 9e9, 9e9)
     bodyVelocity.Parent = root
 
@@ -89,16 +93,7 @@ local function startFlying()
         while flying and character and root and root.Parent do
             task.wait()
             bodyGyro.cframe = Camera.CFrame
-            
-            local moveDir = Vector3.new()
-            if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + Camera.CFrame.LookVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - Camera.CFrame.LookVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - Camera.CFrame.RightVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + Camera.CFrame.RightVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir = moveDir + Vector3.new(0, 1, 0) end
-            if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then moveDir = moveDir - Vector3.new(0, 1, 0) end
-
-            bodyVelocity.velocity = moveDir * flySpeed
+            bodyVelocity.velocity = Camera.CFrame.LookVector * flySpeed
         end
     end)
 end
@@ -125,13 +120,45 @@ FlyBtn.MouseButton1Click:Connect(function()
     end
 end)
 
+-- Fungsi Pemicu Klik untuk Semua Mini-Game SKP
+local function doClick()
+    VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1)
+    task.wait(0.02)
+    VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 1)
+end
+
 AutoBtn.MouseButton1Click:Connect(function()
-    autoClickEnabled = not autoClickEnabled
-    if autoClickEnabled then
-        AutoBtn.Text = "Auto JJS/Train: ON"
+    autoSKPEnabled = not autoSKPEnabled
+    if autoSKPEnabled then
+        AutoBtn.Text = "Auto ALL SKP: ON"
         AutoBtn.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
+        
+        task.spawn(function()
+            while autoSKPEnabled do
+                task.wait(0.05)
+                pcall(function()
+                    -- Cek semua UI latihan yang aktif (JJS, Pushup, Situp, Pullup)
+                    local greenFound = false
+                    for _, v in ipairs(PlayerGui:GetDescendants()) do
+                        if v:IsA("GuiObject") and v.Visible then
+                            -- Cari indikator warna hijau (area sukses mini-game)
+                            local color = v.BackgroundColor3
+                            if (color.G > 0.6 and color.R < 0.4 and color.B < 0.4) or color == Color3.fromRGB(0, 255, 0) then
+                                greenFound = true
+                                break
+                            end
+                        end
+                    end
+                    
+                    -- Jika area mini-game/indikator hijau terdeteksi, lakukan auto-click
+                    if greenFound then
+                        doClick()
+                    end
+                end)
+            end
+        end)
     else
-        AutoBtn.Text = "Auto JJS/Train: OFF"
+        AutoBtn.Text = "Auto ALL SKP: OFF"
         AutoBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
     end
 end)
