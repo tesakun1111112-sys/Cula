@@ -1,0 +1,137 @@
+-- ================================================
+-- ABDI NEGARA SIMULATOR - FLY & AUTO TRAIN
+-- ================================================
+
+local UserInputService = game:GetService("UserInputService")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local Players = game:GetService("Players")
+local CoreGui = game:GetService("CoreGui")
+local RunService = game:GetService("RunService")
+
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local Camera = workspace.CurrentCamera
+
+local flying = false
+local autoClickEnabled = false
+local flySpeed = 50
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "AbdiNegaraMenu"
+ScreenGui.Parent = (gethui and gethui()) or CoreGui or PlayerGui
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+MainFrame.Position = UDim2.new(0.05, 0, 0.3, 0)
+MainFrame.Size = UDim2.new(0, 200, 0, 170)
+MainFrame.Active = true
+MainFrame.Draggable = true
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 8)
+UICorner.Parent = MainFrame
+
+local Title = Instance.new("TextLabel")
+Title.Parent = MainFrame
+Title.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+Title.Size = UDim2.new(1, 0, 0, 30)
+Title.Font = Enum.Font.SourceSansBold
+Title.Text = "Abdi Negara Script"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 16
+
+local FlyBtn = Instance.new("TextButton")
+FlyBtn.Parent = MainFrame
+FlyBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+FlyBtn.Position = UDim2.new(0.1, 0, 0.25, 0)
+FlyBtn.Size = UDim2.new(0.8, 0, 0.28, 0)
+FlyBtn.Font = Enum.Font.SourceSansBold
+FlyBtn.Text = "Fly: OFF"
+FlyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+FlyBtn.TextSize = 14
+
+local AutoBtn = Instance.new("TextButton")
+AutoBtn.Parent = MainFrame
+AutoBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+AutoBtn.Position = UDim2.new(0.1, 0, 0.6, 0)
+AutoBtn.Size = UDim2.new(0.8, 0, 0.28, 0)
+AutoBtn.Font = Enum.Font.SourceSansBold
+AutoBtn.Text = "Auto JJS/Train: OFF"
+AutoBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+AutoBtn.TextSize = 14
+
+local bodyVelocity, bodyGyro
+
+local function startFlying()
+    local character = LocalPlayer.Character
+    if not character then return end
+    local root = character:FindFirstChild("HumanoidRootPart")
+    local humanoid = character:FindFirstChild("Humanoid")
+    if not root or not humanoid then return end
+
+    bodyGyro = Instance.new("BodyGyro")
+    bodyGyro.P = 9e4
+    bodyGyro.maxTorque = Vector3.new(9e9, 9e9, 9e9)
+    bodyGyro.cframe = root.CFrame
+    bodyGyro.Parent = root
+
+    bodyVelocity = Instance.new("BodyVelocity")
+    bodyVelocity.velocity = Vector3.new(0, 0.1, 0)
+    bodyVelocity.maxForce = Vector3.new(9e9, 9e9, 9e9)
+    bodyVelocity.Parent = root
+
+    humanoid.PlatformStand = true
+
+    task.spawn(function()
+        while flying and character and root and root.Parent do
+            task.wait()
+            bodyGyro.cframe = Camera.CFrame
+            
+            local moveDir = Vector3.new()
+            if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + Camera.CFrame.LookVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - Camera.CFrame.LookVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - Camera.CFrame.RightVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + Camera.CFrame.RightVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir = moveDir + Vector3.new(0, 1, 0) end
+            if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then moveDir = moveDir - Vector3.new(0, 1, 0) end
+
+            bodyVelocity.velocity = moveDir * flySpeed
+        end
+    end)
+end
+
+local function stopFlying()
+    if bodyGyro then bodyGyro:Destroy() end
+    if bodyVelocity then bodyVelocity:Destroy() end
+    local character = LocalPlayer.Character
+    if character and character:FindFirstChild("Humanoid") then
+        character.Humanoid.PlatformStand = false
+    end
+end
+
+FlyBtn.MouseButton1Click:Connect(function()
+    flying = not flying
+    if flying then
+        FlyBtn.Text = "Fly: ON"
+        FlyBtn.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
+        startFlying()
+    else
+        FlyBtn.Text = "Fly: OFF"
+        FlyBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+        stopFlying()
+    end
+end)
+
+AutoBtn.MouseButton1Click:Connect(function()
+    autoClickEnabled = not autoClickEnabled
+    if autoClickEnabled then
+        AutoBtn.Text = "Auto JJS/Train: ON"
+        AutoBtn.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
+    else
+        AutoBtn.Text = "Auto JJS/Train: OFF"
+        AutoBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+    end
+end)
